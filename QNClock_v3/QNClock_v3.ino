@@ -267,9 +267,10 @@ void loop() {
     leds.setPixelColor(i, 0 );
 
   int val = analogRead(ROT_PIN);
+  if ( abs( val - rot_val) > 10 )           // chetting 
+        rot_lock = false;
 
-  if ( abs( val - rot_val) > 10 )
-    rot_lock = false;
+    
   switch ( timeSetMode )
   {
     case 1 :  // SET TIME MODE  (hour
@@ -353,12 +354,12 @@ void loop() {
       
 
     case 2:         // Bright
-      if ( rot_lock == false )
-        bright_val = val / 4;
+        if ( rot_lock == false )
+            bright_val = (val /)4;
 
-      if ( valRed <= 0 )
-        valRed = 256;
-      break;
+        if ( valRed <= 0 )
+            valRed = 256;
+        break;
 
     default:
     case 0 :
