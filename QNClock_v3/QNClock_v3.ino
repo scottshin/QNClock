@@ -355,7 +355,7 @@ void loop() {
 
     case 2:         // Bright
         if ( rot_lock == false )
-            bright_val = (val /)4;
+            bright_val = (val /4);
 
         if ( valRed <= 0 )
             valRed = 256;
