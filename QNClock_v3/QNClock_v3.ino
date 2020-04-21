@@ -139,6 +139,8 @@ void setup()
     theme_num = EEPROM.read( EEPROM_THEME_ADDR );
     bright_val = EEPROM.read( EEPROM_BRIGHT_ADDR );
 
+    // teme_num   bright_val   range check. 
+
     fillTheme( theme_num );         // Setting Theme
 
     Serial.begin(9600);

@@ -15,18 +15,15 @@
 
 #include <avr/sleep.h>
 
-#define BAUDRATE	(9600)
-#define MIDNIGHT 	(0)
-#define BLUETOOTH 	(0)
+#define BAUDRATE 9600
 
 
-//#define AUDIO_IN_PIN   (A3)
+#define MIC_PIN (A6)
 
 // data pin
 // SCL  A5
 // SDA  A4
 
-#if BLUETOOTH
 
 #if 0
 	#define RxD 1
@@ -36,9 +33,7 @@
 	#include <SoftwareSerial.h>   		//Software Serial Port
 	#define RxD 2
 	#define TxD 3
-	SoftwareSerial blueToothSerial(RxD,TxD);	//the software serial port 
-#endif
-
+	SoftwareSerial HM10(RxD,TxD);	//the software serial port 
 #endif
 
 
@@ -101,18 +96,19 @@ void setup()
     fillTheme( theme_num );         // Setting Theme
 
     Serial.begin(BAUDRATE);
-#if BLUETOOTH   
-	blueToothSerial.begin(BAUDRATE);    //BT module baud rate
-#endif
+	HM10.begin(BAUDRATE);    //BT module baud rate
+
 
     Wire.begin();
 
-    pinMode(SWITCH_A, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(SWITCH_A), swt_afunc_intrupt, FALLING);
-    pinMode(SWITCH_B, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(SWITCH_B), swt_bfunc_intrupt, FALLING );
+//    pinMode(SWITCH_A, INPUT_PULLUP);
+//    attachInterrupt(digitalPinToInterrupt(SWITCH_A), swt_afunc_intrupt, FALLING);
+//    pinMode(SWITCH_B, INPUT_PULLUP);
+//    attachInterrupt(digitalPinToInterrupt(SWITCH_B), swt_bfunc_intrupt, FALLING );
 
     pinMode ( ROT_PIN, INPUT);      //
+    pinMode( MIC_PIN, INPUT);
+
     Serial.println("--- theme num --");
     Serial.println(theme_num);
 
@@ -173,16 +169,29 @@ void sleepNow()
 void loop() {
 
 
-#if BLUETOOTH
-	if (blueToothSerial.available()) {
-		Serial.write(blueToothSerial.read());
-	}
-	if (Serial.available()) {
-		blueToothSerial.write(Serial.read());
-		Serial.println("--- write bt messageasdfdsdsfsd ----");
-	}
-#endif
+ if (HM10.available()) {
+    Serial.write(HM10.read());
+  }
+  if (Serial.available()) {
+    HM10.write(Serial.read());
+  }
 
+	
+  int sound = analogRead( MIC_PIN );
+
+  Serial.print( sound );
+  Serial.print(",");
+  Serial.print(760);
+  Serial.print(",");
+  Serial.println(0);
+
+ delay(20);
+
+
+
+
+
+  
 
     setStoreTime();     // if need
     setStoreTheme();      // if need
@@ -200,12 +209,9 @@ void loop() {
 
 		// 오후 6시는 밤,   오전 6시 낮	
 	bool isDay = (hours >= 6 && hours < 18 );
-	bool isMidNight = false;
-#if MIDNIGHT
 	bool isMidNight = ( hours > 0 && hours < 5 );
 	if ( theme_num > 11 )
 		isMidNight = false;
-#endif
   
 	int calcBrightVal = bright_val;
 	if ( isDay == false ) {
@@ -370,30 +376,16 @@ Bitblt:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 //send command to Bluetooth and return if there is a response received
 int sendBlueToothCommand(char command[])
 {
-#if BLUETOOTH
-	
     Serial.print("send: ");
     Serial.print(command);
     Serial.println("");
 #if NLCR
-    blueToothSerial.println(command);
+    HM10.println(command);
 #else
-    blueToothSerial.print(command);
+    HM10.print(command);
 #endif    
     delay(300);
 
@@ -402,15 +394,12 @@ int sendBlueToothCommand(char command[])
     Serial.print("recv: ");
     Serial.print(recv_str);
     Serial.println("");
-#endif
     return 0;
 }
 
 //receive message from Bluetooth with time out
 int recvMsg(unsigned int timeout)
 {
-#if BLUETOOTH
-	
     //wait for feedback
     unsigned int time = 0;
     unsigned char num;
@@ -421,9 +410,9 @@ int recvMsg(unsigned int timeout)
     while(1)
     {
         delay(50);
-        if(blueToothSerial.available())
+        if(HM10.available())
         {
-            recv_str[i] = char(blueToothSerial.read());
+            recv_str[i] = char(HM10.read());
             i++;
             break;
         }
@@ -432,19 +421,15 @@ int recvMsg(unsigned int timeout)
     }
 
     //read other characters from uart buffer to string
-    while(blueToothSerial.available() && (i < 100))
+    while(HM10.available() && (i < 100))
     {                                              
-        recv_str[i] = char(blueToothSerial.read());
+        recv_str[i] = char(HM10.read());
         i++;
     }
-
-    
 #if NLCR    
     recv_str[i-2] = '\0';       //discard two character \n\r
 #else
     recv_str[i] = '\0';
-#endif
-
 #endif
     return 0;
 }

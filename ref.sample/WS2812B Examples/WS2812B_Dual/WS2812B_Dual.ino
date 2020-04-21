@@ -37,8 +37,8 @@ You may connect ground and power to either side of the module.
 */
 
 #include <Adafruit_NeoPixel.h>         // Include Adafruit NeoPixel library
-#define PIN            7               // First LED on digital pin 6
-#define NUMLEDS        2               // Use total of 2 LEDs
+#define PIN          4               // First LED on digital pin 6
+#define NUMLEDS        5              // Use total of 2 LEDs
 
 // Create 'leds' object to drive LEDs
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(NUMLEDS, PIN, NEO_GRB + NEO_KHZ800);
@@ -50,7 +50,10 @@ void setup() {
 
   //Make sure both LEDs are off to demonstrate start of sketch
   leds.setPixelColor(0, leds.Color(0, 0, 0));  // Turn off LED0
-  leds.setPixelColor(1, leds.Color(0, 0, 0));  // Turn off LED1
+  leds.setPixelColor(1, leds.Color(0, 0, 0));  // Turn off LED1  
+  leds.setPixelColor(2, leds.Color(0, 0, 0));  // Turn off LED1
+
+  
   leds.show();                        // Set new values
   delay(500);
   
@@ -62,18 +65,28 @@ void loop() {
   for(int i=0; i<255; i++) {            // Count up color units from 0 to 255
     leds.setPixelColor(0, leds.Color(i, 0, 0));  // Color mix for LED0
     leds.setPixelColor(1, leds.Color(0, i, 0));  // Color mix for LED1
+    leds.setPixelColor(2, leds.Color(0, 0, i));  // Color mix for LED1
+        leds.setPixelColor(3, leds.Color(0, i, i));  // Color mix for LED1
+                leds.setPixelColor(4, leds.Color(i, i, i));  // Color mix for LED1
     leds.show();                        // Set the LEDs
     delay(wait);                        // Delay for visual effect
   }
   for(int i=0; i<255; i++) {            // Loop through next color change
     leds.setPixelColor(0, leds.Color(0, i, 0)); 
     leds.setPixelColor(1, leds.Color(0, 0, i)); 
+        leds.setPixelColor(2, leds.Color(0, 0, i));  // Color mix for LED1
+        leds.setPixelColor(3, leds.Color(0, i, i));  // Color mix for LED1
+                leds.setPixelColor(4, leds.Color(i, i, i));  // Color mix for LED1
     leds.show(); 
     delay(wait); 
   }
   for(int i=0; i<255; i++) {            // Loop through next color change
     leds.setPixelColor(0, leds.Color(0, 0, i));
     leds.setPixelColor(1, leds.Color(i, 0, 0)); 
+        leds.setPixelColor(2, leds.Color(0, 0, i));  // Color mix for LED1
+        leds.setPixelColor(3, leds.Color(0, i, i));  // Color mix for LED1
+                leds.setPixelColor(4, leds.Color(i, i, i));  // Color mix for LED1
+                
     leds.show(); 
     delay(wait);
   }
