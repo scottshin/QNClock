@@ -15,22 +15,21 @@
 
 #include <avr/sleep.h>
 
-#include <Encoder.h>
-#include <Button.h>
+#define BAUDRATE	(9600)
+#define MIDNIGHT 	(1)
+#define BLUETOOTH 	(0)
 
 
-#define BAUDRATE 9600
-#define MIC_PIN (A6)
+//#define AUDIO_IN_PIN   (A3)
 
 // data pin
 // SCL  A5
 // SDA  A4
 
 
-Encoder	Enc ( ENC_DT, ENC_CLK );
-Button 	EncButton ( ENC_SW );
-long oldPosition  = -999;
-int calcBrightVal = 255;
+
+
+#if BLUETOOTH
 
 #if 0
 	#define RxD 1
@@ -40,33 +39,66 @@ int calcBrightVal = 255;
 	#include <SoftwareSerial.h>   		//Software Serial Port
 	#define RxD 2
 	#define TxD 3
-	SoftwareSerial HM10(RxD,TxD);	//the software serial port 
+	SoftwareSerial blueToothSerial(RxD,TxD);	//the software serial port 
 #endif
+
+#endif
+
+
 char recv_str[100];
 
 
 // A, red button
 void swt_afunc_intrupt()
 {
-    if ( valMode > 0 )  // B button 동작중이면 a button 무효화
+    if ( valMode == 3 || valMode == 4  )  // B button 동작중이면 a button 무효화
         return;
-    
-    timeSetMode = (++timeSetMode%3);
-    if ( timeSetMode == 2 )   isNeedStoreTime = true;  // hour
-    if ( timeSetMode == 0 )   isNeedStoreTime = true;  // Min
 
+    if ( valMode == 0 )
+    	valMode =1;
+    else
+    if ( valMode == 1 )
+    {
+    	valMode =2;
+    	 isNeedStoreTime = true;  // hour
+    }
+    else
+    if ( valMode == 2 )
+    {
+    	valMode = 0;	
+		isNeedStoreTime = true;  // hour
+    }
+
+    rot_lock = true;
+    rot_val = analogRead( ROT_PIN );
 }
 
 
 // B,  yellow button
 void swt_bfunc_intrupt()
 {
-	if ( timeSetMode > 0 )  // A button 동작중이면 B button 무효화
+	if ( valMode == 1 || valMode == 2 )  // A button 동작중이면 B button 무효화
         return;
 
-	valMode = ((++valMode) % 3);
-    if ( valMode == 2 )  isNeedStoreTheme = true;
-    if ( valMode == 0 )  isNeedStoreBright = true;    
+
+	if ( valMode == 0 )
+		valMode = 3;
+	else
+	if ( valMode == 3 )
+	{
+		valMode = 4;
+		isNeedStoreTheme = true;
+	}
+	else
+	if ( valMode == 4 )
+	{
+		valMode = 0;		
+		isNeedStoreBright = true;
+	}
+
+    rot_lock = true;
+    rot_val = analogRead( ROT_PIN );
+    
 }
 
 void setup() 
@@ -82,18 +114,18 @@ void setup()
     fillTheme( theme_num );         // Setting Theme
 
     Serial.begin(BAUDRATE);
-	HM10.begin(BAUDRATE);    //BT module baud rate
-
+#if BLUETOOTH   
+	blueToothSerial.begin(BAUDRATE);    //BT module baud rate
+#endif
 
     Wire.begin();
 
-//    pinMode(SWITCH_A, INPUT_PULLUP);
-//    attachInterrupt(digitalPinToInterrupt(SWITCH_A), swt_afunc_intrupt, FALLING);
-//    pinMode(SWITCH_B, INPUT_PULLUP);
-//    attachInterrupt(digitalPinToInterrupt(SWITCH_B), swt_bfunc_intrupt, FALLING );
+    pinMode(SWITCH_A, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(SWITCH_A), swt_afunc_intrupt, FALLING);
+    pinMode(SWITCH_B, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(SWITCH_B), swt_bfunc_intrupt, FALLING );
 
-
-    pinMode( MIC_PIN, INPUT);
+    pinMode ( ROT_PIN, INPUT);      //
     Serial.println("--- theme num --");
     Serial.println(theme_num);
 
@@ -145,106 +177,89 @@ void sleepNow()
 	//HERE AFTER WAKING UP
 	sleep_disable();
 	detachInterrupt(0);
-}
 
+}
 
 
 // Loop through changing R, G, and B colors
 // Each color fades in from off (i=0) to fully on (i=255)
 void loop() {
 
-	if (HM10.available()) {
-    	Serial.write(HM10.read());
+#if BLUETOOTH
+	if (blueToothSerial.available()) {
+		Serial.write(blueToothSerial.read());
 	}
 	if (Serial.available()) {
-    	HM10.write(Serial.read());
+		blueToothSerial.write(Serial.read());
+		Serial.println("--- write bt messageasdfdsdsfsd ----");
 	}
+#endif
 
-/*	
-  int sound = analogRead( MIC_PIN );
-  Serial.print( sound );
-  Serial.print(",");
-  Serial.print(760);
-  Serial.print(",");
-  Serial.println(0);
-  delay(20);
-*/
 
-	if (EncButton.toggled()) {
-		if (EncButton.read() == Button::PRESSED)
-			Serial.println("pressed");
-		else
-			swt_afunc_intrupt();
-	}
-	
     setStoreTime();     // if need
     setStoreTheme();      // if need
-	if ( (frames++ %150) == 0)
-	{
-        interval = !interval;
-        if ( 0 > get3231Date() )  {
-           //SetPixelColor( 8, 100, 128, 0, 0);
-           //delay(100);   // 100mS
+   if ( (frames++ %50) == 0)
+   {
+        interval = !interval;    		// inverter si, bun     
+        if ( 0 > get3231Date() )
+        {
+           SetPixelColor( 8, 100, 128, 0, 0);
+           delay(100);   // 100mS
            return;
         }
 	}
+
+	int calcBrightVal = bright_val;
 
 	// clear flag
 	for ( int i = 0; i < NUM_LEDS; i++)
 		leds.setPixelColor(i, 0 );
 	
+	int val = analogRead(ROT_PIN);
+	if ( abs( val - rot_val) > 10 )           // chetting 
+		rot_lock = false;
 
-	switch ( timeSetMode )
-	{
-		case 1 :  // SET TIME MODE  (hour
-		{
-			long newPosition = (Enc.read() / 4);
-			if (newPosition != oldPosition) {
-				oldPosition = newPosition;
-				Serial.println(newPosition);
-			}
-			if ( valYellow <= 0 )
-				valYellow = 256;
-			hours = (newPosition %12);
-		}
-		goto display_time;
 
-		case 2 :  // SET TIME MODE  (min)
-		{
-			long newPosition = (Enc.read() / 4);
-			if (newPosition != oldPosition) {
-				oldPosition = newPosition;
-				Serial.println(newPosition);
+	if ( valMode == 1 ) // SET TIME MODE  (hour)
+	{	
+			if ( valFade <= 0 )
+				valFade = 256;
+			modeJung = 0;
+
+			if (rot_lock == false)
+			{
+				int hour_ =  (int)( (float)(val) / (float)42.6666 );
+				hours = hour_;
+				minutes = 0;     
 			}
-			if ( valYellow <= 0 )
-				valYellow = 256;
-			int min = (newPosition %12);
-			minutes = ( min * 5 );	
-		}
-		goto display_time;
-		default:
-				break;
 	}
-
-
-	switch ( valMode )
-    {
-        case 1 :        // theme
-        {
+	else 
+	if ( valMode == 2)  // SET TIME MODE  (min)
+	{
+			if ( valFade <= 0 )
+				valFade = 256;
+			modeJung = 0;	
+			
+			if (rot_lock == false)
+			{
+				int min_ =  (int)( (float)(val - 64) / 80 );
+				minutes = ( min_ * 5 );
+			}
+	}
+	else
+	if ( valMode == 3 )	 // theme
+	{
             calcBrightVal = 255;
-            //Serial.println("--- theme mode ----");
-            if ( valBlue <= 0 )
-                valBlue = 256;
+			if ( valFade <= 0 )
+				valFade = 256;
+            modeJung = 1;
                 
-            {
-                //theme_num  = (int) ( val / 70 );		// 12 level 
+            if ( rot_lock == false )  {
+                theme_num  = (int) ( val / 70 );		// 12 level 
                 fillTheme( theme_num );         // Setting Theme
-                Serial.println( theme_num);
+                //Serial.println( theme_num);
             }
-
-            for ( int i = 0; i < 25; i++)
-                leds.setPixelColor(i, cr_theme[i]  );
-        
+            
             // color define
 			leds.setPixelColor(0, cr_theme[0]  );
             leds.setPixelColor(3, cr_theme[3] );
@@ -256,60 +271,79 @@ void loop() {
 				leds.setPixelColor(d, cr_theme[d] );
 			leds.setPixelColor(22, cr_theme[22] );        // 시
 			leds.setPixelColor(24, cr_theme[24] );        // 분
-		}
-		break;
-      
 
-		case 2:         // Bright
-			//Serial.println("--- Bright mode ----");
-			if ( valRed <= 0 )  valRed = 256;
-			break;
-
-		default:
-		case 0 :
+	}
+	else
+	if ( valMode == 4 ) // Bright
+	{
+			if ( rot_lock == false )  
+				bright_val = (val /4);
+				
+			if ( valFade <= 0 )
+				valFade = 256;
+			modeJung = 2; 	
+	}
+	else
+	{
             //Serial.println("--- running mode----");
-            break;
 	}
 
 
 	printDate2Serial();
 	printButtonState2Serial();
 
-  //  leds.setGamma(0.5f);
 
-  
-display_time:
-	updateDisplay();
-	if ( timeSetMode == 1 || timeSetMode == 2 || valMode ==1 || valMode ==2 ) 
+
+	updateTime (calcBrightVal,  (valMode==1 || valMode==2 || valMode ==3 || valMode ==4), valMode==4  );
+	if (valMode==1 || valMode==2 || valMode ==3 || valMode ==4)
 	{
+		// for setup
+		delay(8);
 	}
 	else
 		delay(100);   // 100mS
-}
+}		
 
 
-
-void updateDisplay()
+void updateTime(int bright, bool bsetup, bool control_bright )
 {
 
-
-			// 오후 6시는 밤,   오전 6시 낮	
+	bool isLogo = true;
+		// 오후 6시는 밤,   오전 6시 낮	
 	bool isDay = (hours >= 6 && hours < 18 );
-	bool isMidNight = ( hours > 0 && hours < 5 );
+	bool isMidNight = false;
+#if MIDNIGHT
+	isMidNight = ( hours > 0 && hours < 5 );
 	if ( theme_num > 11 )
 		isMidNight = false;
-  
-	calcBrightVal = bright_val;
-	if ( isDay == false ) {
-		calcBrightVal -= (int) ( (float)bright_val * (isMidNight ? 0.8 : 0.6) );
-	}
-	
-	
+#endif
 
-{
-    // color define DAY 
-    leds.setPixelColor(0, isDay ? cr_theme[0] : leds.Color(0,0,0)  );
-    leds.setPixelColor(3, isDay ? leds.Color(0, 0, 0) : cr_theme[3]  );
+	int apply_bright = bright;
+
+	if ( control_bright == true )
+	{
+
+	}
+	else
+	{
+		if ( isDay == false ) 
+			apply_bright -= (int) ( (float)bright * (isMidNight ? 0.8 : 0.6) );
+	}
+
+	if ( isLogo == true )
+	{
+		    // color define DAY 
+    	leds.setPixelColor(0, cr_theme[0] );
+    	leds.setPixelColor(3, cr_theme[3] );
+    	if ( bsetup == false )
+			leds.setPixelColor(8, cr_theme[3] );
+	}
+	else
+	{
+    	// color define DAY 
+    	leds.setPixelColor(0, isDay ? cr_theme[0] : leds.Color(0,0,0)  );
+    	leds.setPixelColor(3, isDay ? leds.Color(0, 0, 0) : cr_theme[3]  );
+	}
 
     /**     */
   	int array[3] = { 0, 0, 0};
@@ -328,38 +362,61 @@ void updateDisplay()
     if ( array[0] || array[1] || array[2] )
         leds.setPixelColor(_BN, cr_theme[24] );            // 분
  
-    switch ( timeSetMode )
+    switch ( valMode )
     {
         case 1: leds.setPixelColor(_SI, (interval==1) ? cr_theme[22] : leds.Color(0,0,0)  );      // 시
                 break;
         case 2: leds.setPixelColor(_BN, (interval==1) ? cr_theme[24] : leds.Color(0,0,0)  );     // 분
                 break;
+
+        case 0: break;        
     } 
-}
 
 Bitblt:
-    if ( valYellow > 0 )  {
-        leds.setPixelColor(8, leds.Color(valYellow, valYellow, 0) );
-        valYellow -= 12;
-    }
-    if ( valBlue > 0 )  {
-        leds.setPixelColor(8, leds.Color(0, 0, valBlue) );
-        valBlue -= 12;
-    }
-    if ( valRed > 0 )  {
-        leds.setPixelColor(8, leds.Color(valRed, 0, 0) );
-        valRed -= 12;
-    }
+	if (valMode != 0 )
+		INVERT_JUNG( modeJung );
+		
+    LED_SHOW( apply_bright ); 
+}
 
-    
-#if 1
+void LED_SHOW( int calcB )
+{
+
   //  leds.setBrightness( _gammaTable[val] );
-	leds.setBrightness( calcBrightVal);
-#endif
-
+	leds.setBrightness( calcB);
 	leds.show();
 
+	  //  leds.setGamma(0.5f);
+}
 
+
+void INVERT_JUNG( int mode )
+{
+
+
+
+	int valYellow = 0;
+	int valBlue = 0;
+	int valRed = 0;
+
+	if ( mode == 0 )
+		valYellow = valFade;
+	if ( mode == 1 )
+		valBlue = valFade;
+	if ( mode == 2 )
+		valRed = valFade;		
+	
+    if ( valYellow > 0 )  {
+        leds.setPixelColor( 8, leds.Color(valYellow, valYellow, 0) );
+    }
+    if ( valBlue > 0 )  {
+       leds.setPixelColor( 8, leds.Color(0,0,valBlue) );
+    }
+    if ( valRed > 0 )  {
+        leds.setPixelColor( 8, leds.Color(valRed,0,0) );
+    }
+
+    valFade -= 6;
 }
 
 
@@ -368,13 +425,15 @@ Bitblt:
 //send command to Bluetooth and return if there is a response received
 int sendBlueToothCommand(char command[])
 {
+#if BLUETOOTH
+	
     Serial.print("send: ");
     Serial.print(command);
     Serial.println("");
 #if NLCR
-    HM10.println(command);
+    blueToothSerial.println(command);
 #else
-    HM10.print(command);
+    blueToothSerial.print(command);
 #endif    
     delay(300);
 
@@ -383,12 +442,15 @@ int sendBlueToothCommand(char command[])
     Serial.print("recv: ");
     Serial.print(recv_str);
     Serial.println("");
+#endif
     return 0;
 }
 
 //receive message from Bluetooth with time out
 int recvMsg(unsigned int timeout)
 {
+#if BLUETOOTH
+	
     //wait for feedback
     unsigned int time = 0;
     unsigned char num;
@@ -399,9 +461,9 @@ int recvMsg(unsigned int timeout)
     while(1)
     {
         delay(50);
-        if(HM10.available())
+        if(blueToothSerial.available())
         {
-            recv_str[i] = char(HM10.read());
+            recv_str[i] = char(blueToothSerial.read());
             i++;
             break;
         }
@@ -410,15 +472,19 @@ int recvMsg(unsigned int timeout)
     }
 
     //read other characters from uart buffer to string
-    while(HM10.available() && (i < 100))
+    while(blueToothSerial.available() && (i < 100))
     {                                              
-        recv_str[i] = char(HM10.read());
+        recv_str[i] = char(blueToothSerial.read());
         i++;
     }
+
+    
 #if NLCR    
     recv_str[i-2] = '\0';       //discard two character \n\r
 #else
     recv_str[i] = '\0';
+#endif
+
 #endif
     return 0;
 }

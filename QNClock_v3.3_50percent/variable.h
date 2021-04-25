@@ -9,6 +9,7 @@
 #define DS3231_I2C_ADDRESS (104)
 
 #define LED_PIN            (4)              // LED on digital pin D4
+#define ROT_PIN           (A0)
 
 //#define BLUETOOTH_TX
 //#define BLUETOOTH_RX
@@ -16,9 +17,6 @@
 #define SWITCH_A    (2)
 #define SWITCH_B    (3)
 
-#define ENC_DT	(7)
-#define ENC_CLK	(8)
-#define ENC_SW  (9)
 
 #define VERSION     "3.6"
 
@@ -42,14 +40,15 @@ Adafruit_NeoPixel leds = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ8
 volatile byte theme_num = 0;
 volatile byte bright_val = 255;
 
-volatile int  valYellow = 0;  // yellow button
-volatile int  valBlue = 0; // blue 
-volatile int valRed = 0;
+volatile int modeJung = 0;
+volatile int valFade = 0;
 
 
-volatile int  valMode = 0;  // 0 : normal,  1 : setTime,  2: setTheme,  3: setBright
-volatile int timeSetMode = 0;   // 0:normal, 1: hour, 2: min 
+volatile int  valMode = 0;  // 0 : normal,  1 : setTime,(hour), 2 : setTime(min),   3: setTheme,  4: setBright
+//volatile int timeSetMode = 0;   // 0:normal, 1: hour, 2: min 
 
+volatile int rot_lock = false;
+volatile int rot_val = 0;
 
 
 volatile int interval = 0;

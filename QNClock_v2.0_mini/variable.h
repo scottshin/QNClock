@@ -8,17 +8,17 @@
 #define MAX_LUX         128
 #define DS3231_I2C_ADDRESS (104)
 
-#define LED_PIN            (4)              // LED on digital pin D4
+#define LED_PIN            (5)              // LED on digital pin D4
 
 //#define BLUETOOTH_TX
 //#define BLUETOOTH_RX
 
-#define SWITCH_A    (2)
-#define SWITCH_B    (3)
+#define SWITCH_A    (7)
+#define SWITCH_B    (8)
 
-#define ENC_DT	(7)
-#define ENC_CLK	(8)
-#define ENC_SW  (9)
+#define ENC_DT	(2)
+#define ENC_CLK	(3)
+#define ENC_SW  (4)
 
 #define VERSION     "3.6"
 
@@ -33,7 +33,7 @@ volatile int isNeedStoreTheme = 0;
 volatile int isNeedStoreBright = 0;
 
 // Create 'leds' object to drive LEDs
-Adafruit_NeoPixel leds = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel leds[5];
 
 
 #define EEPROM_THEME_ADDR  (0)
@@ -42,15 +42,17 @@ Adafruit_NeoPixel leds = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ8
 volatile byte theme_num = 0;
 volatile byte bright_val = 255;
 
-volatile int  valYellow = 0;  // yellow button
-volatile int  valBlue = 0; // blue 
+
+volatile int modeJung = 0;
+volatile int valFade = 0;
+/*
+volatile int valYellow = 0;  // yellow button
+volatile int valBlue = 0; // blue 
 volatile int valRed = 0;
+*/
 
-
-volatile int  valMode = 0;  // 0 : normal,  1 : setTime,  2: setTheme,  3: setBright
+volatile int valMode = 0;  // 0 : normal,  1 : setTime,  2: setTheme,  3: setBright
 volatile int timeSetMode = 0;   // 0:normal, 1: hour, 2: min 
-
-
 
 volatile int interval = 0;
 volatile int frames = 0;
