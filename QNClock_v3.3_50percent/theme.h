@@ -278,8 +278,11 @@ void fillTheme( int idx)
        cr_theme[22] =  leds.Color(55, 255, 215 );  // cyan
        cr_theme[24] =  leds.Color(255, 55, 215 );  // magenta
     }
-   
 
+
+
+	// all theme   red
+   cr_theme[_DAY] = leds.Color(0xff, 0x0, 0);          // day   50percent
     
 }
 

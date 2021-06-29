@@ -264,11 +264,11 @@ void loop() {
 			leds.setPixelColor(0, cr_theme[0]  );
             leds.setPixelColor(3, cr_theme[3] );
             int f = 0, d = 0;
-            matrix_number_to( theme_num, f, d );
-			if ( f )
-				leds.setPixelColor(f, cr_theme[f] );
-            if ( d > 0 )
-				leds.setPixelColor(d, cr_theme[d] );
+       //     matrix_number_to( theme_num, f, d );
+		//	if ( f )
+		//		leds.setPixelColor(f, cr_theme[f] );
+         //   if ( d > 0 )
+		//		leds.setPixelColor(d, cr_theme[d] );
 			leds.setPixelColor(22, cr_theme[22] );        // 시
 			leds.setPixelColor(24, cr_theme[24] );        // 분
 
